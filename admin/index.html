@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin - Kantin Biru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] },
+          colors: { accent: { DEFAULT: '#d97706', hover: '#b45309' } }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    if (sessionStorage.getItem('isAdmin') !== 'true') {
+      window.location.href = 'login.html';
+    }
+    function toggleSidebar() {
+      const sidebar = document.getElementById('admin-sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.toggle('-translate-x-full');
+      overlay.classList.toggle('hidden');
+    }
+  </script>
+</head>
+<body class="bg-zinc-50 text-zinc-900 font-sans min-h-screen flex flex-col lg:flex-row">
+
+  <!-- Desktop sidebar -->
+  <aside id="admin-sidebar" class="fixed inset-y-0 left-0 w-64 bg-white border-r border-zinc-200 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
+    <div class="p-6 border-b border-zinc-200">
+      <div class="flex items-center gap-3">
+        <img src="../Menu/Logo Kantin Biru V2.png" alt="Logo" class="w-8 h-8">
+        <div>
+          <h1 class="font-semibold text-sm">Kantin Biru</h1>
+          <p class="text-xs text-zinc-400">Admin Panel</p>
+        </div>
+      </div>
+    </div>
+    <nav class="p-4 space-y-1">
+      <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium bg-amber-50 text-amber-700">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+      </a>
+      <a href="menu.html" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-zinc-600 hover:bg-zinc-50">
+        <i data-lucide="utensils-crossed" class="w-4 h-4"></i> Manajemen Menu
+      </a>
+      <a href="riwayat.html" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-zinc-600 hover:bg-zinc-50">
+        <i data-lucide="history" class="w-4 h-4"></i> Riwayat
+      </a>
+    </nav>
+    <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-zinc-200">
+      <button onclick="sessionStorage.removeItem('isAdmin'); window.location.href='login.html'" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-zinc-600 hover:bg-zinc-50 w-full">
+        <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/20 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+  <!-- Main content area -->
+  <main class="flex-1 lg:ml-64 w-full">
+    <!-- Mobile header -->
+    <header class="lg:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSidebar()" class="p-2 -ml-2 text-zinc-600 hover:bg-zinc-50 rounded-md">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <h1 class="font-semibold text-sm">Dashboard</h1>
+      </div>
+    </header>
+
+    <div class="p-4 lg:p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-semibold tracking-tight">Antrean Pesanan</h2>
+          <p class="text-sm text-zinc-500 mt-1">Kelola pesanan yang masuk secara real-time</p>
+        </div>
+        <button id="btn-reset-queue" class="px-4 py-2 border border-zinc-300 rounded-md text-sm font-medium hover:bg-zinc-50 transition-colors duration-150">
+          Reset Antrean
+        </button>
+      </div>
+
+      <!-- Kanban Board -->
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <!-- Kolom 1 -->
+        <div class="rounded-lg border border-zinc-200 bg-white flex flex-col max-h-[calc(100vh-12rem)]">
+          <div class="p-4 border-b border-zinc-200 bg-zinc-50/50 rounded-t-lg flex justify-between items-center">
+            <h3 class="font-semibold text-sm">Menunggu Konfirmasi</h3>
+            <span id="count-pending" class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 text-xs font-medium">0</span>
+          </div>
+          <div id="pending-orders-body" class="p-4 flex-1 overflow-y-auto min-h-[200px]">
+            <!-- Dynamic content -->
+          </div>
+        </div>
+
+        <!-- Kolom 2 -->
+        <div class="rounded-lg border border-zinc-200 bg-white flex flex-col max-h-[calc(100vh-12rem)]">
+          <div class="p-4 border-b border-zinc-200 bg-zinc-50/50 rounded-t-lg flex justify-between items-center">
+            <h3 class="font-semibold text-sm">Sedang Dimasak</h3>
+            <span id="count-cooking" class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-xs font-medium">0</span>
+          </div>
+          <div id="cooking-orders-body" class="p-4 flex-1 overflow-y-auto min-h-[200px]">
+            <!-- Dynamic content -->
+          </div>
+        </div>
+
+        <!-- Kolom 3 -->
+        <div class="rounded-lg border border-zinc-200 bg-white flex flex-col max-h-[calc(100vh-12rem)]">
+          <div class="p-4 border-b border-zinc-200 bg-zinc-50/50 rounded-t-lg flex justify-between items-center">
+            <h3 class="font-semibold text-sm">Siap Diambil</h3>
+            <span id="count-ready" class="px-2 py-0.5 rounded-md bg-green-100 text-green-700 text-xs font-medium">0</span>
+          </div>
+          <div id="ready-orders-body" class="p-4 flex-1 overflow-y-auto min-h-[200px]">
+            <!-- Dynamic content -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <audio id="orderNotificationSound" src="../Menu/notif pesanan.mp3"></audio>
+
+  <script type="module" src="../firebase-config.js"></script>
+  <script type="module" src="admin.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
+</body>
+</html>

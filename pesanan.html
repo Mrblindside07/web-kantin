@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kantin Biru - Pesanan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] },
+          colors: {
+            accent: { DEFAULT: '#d97706', hover: '#b45309' }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-zinc-50 text-zinc-900 font-sans min-h-screen pb-24 md:pb-8">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 bg-white border-b border-zinc-200">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="Menu/Logo Kantin Biru V2.png" alt="Logo" class="w-8 h-8 object-contain">
+        <h1 class="text-lg font-semibold tracking-tight text-zinc-900">Kantin Biru</h1>
+      </a>
+      <nav class="hidden md:flex items-center gap-6">
+        <a href="index.html" class="text-zinc-500 hover:text-zinc-900 font-medium text-sm transition-colors duration-150">Menu</a>
+        <a href="pesanan.html" class="text-amber-600 font-medium text-sm">Pesanan</a>
+        <a href="tentang.html" class="text-zinc-500 hover:text-zinc-900 font-medium text-sm transition-colors duration-150">Tentang</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-xl mx-auto px-4 py-6">
+    
+    <!-- View 1: Cart View -->
+    <div id="cart-view" class="space-y-6">
+      
+      <!-- Items Container -->
+      <div class="bg-white rounded-lg border border-zinc-200 overflow-hidden p-4">
+        <h2 class="text-sm font-semibold text-zinc-900 mb-3 pb-2 border-b border-zinc-100 flex items-center justify-between">
+          <span>Daftar Pesanan</span>
+          <span class="text-xs font-normal text-zinc-400 cart-total-qty">0 item</span>
+        </h2>
+        <div id="cart-items-container" class="divide-y divide-zinc-100">
+          <!-- Cart items injected via JS -->
+        </div>
+      </div>
+
+      <!-- Order Notes -->
+      <div class="bg-white rounded-lg border border-zinc-200 p-4">
+        <label for="order-notes" class="block text-sm font-medium text-zinc-900 mb-1">Catatan Pesanan <span class="text-zinc-400 font-normal">(Opsional)</span></label>
+        <textarea id="order-notes" rows="2" class="w-full border border-zinc-200 rounded-md p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 focus-visible:border-amber-600 transition-colors duration-150 placeholder-zinc-400" placeholder="Misal: Jangan terlalu pedas, bungkus terpisah"></textarea>
+      </div>
+
+      <!-- Customer Info & Order Type -->
+      <div class="bg-white rounded-lg border border-zinc-200 p-4 space-y-4">
+        <div>
+          <label for="customer-name" class="block text-sm font-medium text-zinc-900 mb-1">Nama Pemesan <span class="text-amber-600">*</span></label>
+          <input type="text" id="customer-name" class="w-full border border-zinc-200 rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 focus-visible:border-amber-600 transition-colors duration-150 placeholder-zinc-400" placeholder="Masukkan nama Anda" required>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-zinc-900 mb-2">Tipe Pesanan</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="relative cursor-pointer">
+              <input type="radio" name="order-type" value="dine_in" onchange="window.toggleOrderType()" class="peer sr-only" checked>
+              <div class="p-3 border border-zinc-200 rounded-md flex flex-col items-center gap-1.5 peer-checked:border-amber-600 peer-checked:bg-amber-50/50 transition-colors duration-150 text-zinc-500 peer-checked:text-amber-700">
+                <i data-lucide="utensils" class="w-5 h-5"></i>
+                <span class="text-xs font-semibold">Makan di Tempat</span>
+              </div>
+            </label>
+            <label class="relative cursor-pointer">
+              <input type="radio" name="order-type" value="takeaway" onchange="window.toggleOrderType()" class="peer sr-only">
+              <div class="p-3 border border-zinc-200 rounded-md flex flex-col items-center gap-1.5 peer-checked:border-amber-600 peer-checked:bg-amber-50/50 transition-colors duration-150 text-zinc-500 peer-checked:text-amber-700">
+                <i data-lucide="package" class="w-5 h-5"></i>
+                <span class="text-xs font-semibold">Bawa Pulang (Takeaway)</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div id="table-select-group">
+          <label for="table-select" class="block text-sm font-medium text-zinc-900 mb-1">Pilih Nomor Meja</label>
+          <select id="table-select" class="w-full border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 focus-visible:border-amber-600 transition-colors duration-150">
+            <option value="" disabled selected>Pilih meja (1 - 15)</option>
+            <option value="1">Meja 1</option>
+            <option value="2">Meja 2</option>
+            <option value="3">Meja 3</option>
+            <option value="4">Meja 4</option>
+            <option value="5">Meja 5</option>
+            <option value="6">Meja 6</option>
+            <option value="7">Meja 7</option>
+            <option value="8">Meja 8</option>
+            <option value="9">Meja 9</option>
+            <option value="10">Meja 10</option>
+            <option value="11">Meja 11</option>
+            <option value="12">Meja 12</option>
+            <option value="13">Meja 13</option>
+            <option value="14">Meja 14</option>
+            <option value="15">Meja 15</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Payment Method -->
+      <div class="bg-white rounded-lg border border-zinc-200 p-4">
+        <label class="block text-sm font-medium text-zinc-900 mb-3">Metode Pembayaran</label>
+        <div class="space-y-2">
+          <label class="flex items-center gap-3 p-3 border border-zinc-200 rounded-md cursor-pointer hover:bg-zinc-50 transition-colors duration-150 [&:has(:checked)]:border-amber-600 [&:has(:checked)]:bg-amber-50/40">
+            <input type="radio" name="payment-method" value="kasir" class="w-4 h-4 text-amber-600 border-zinc-300 focus:ring-amber-600" checked>
+            <div class="flex-1">
+              <div class="text-sm font-semibold text-zinc-900">Bayar di Kasir</div>
+              <div class="text-xs text-zinc-500">Bayar langsung saat mengambil pesanan (Tunai)</div>
+            </div>
+          </label>
+          <label class="flex items-center gap-3 p-3 border border-zinc-200 rounded-md cursor-pointer hover:bg-zinc-50 transition-colors duration-150 [&:has(:checked)]:border-amber-600 [&:has(:checked)]:bg-amber-50/40">
+            <input type="radio" name="payment-method" value="qris" class="w-4 h-4 text-amber-600 border-zinc-300 focus:ring-amber-600">
+            <div class="flex-1">
+              <div class="text-sm font-semibold text-zinc-900">QRIS</div>
+              <div class="text-xs text-zinc-500">Scan QR Code di counter kasir</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Summary & Checkout -->
+      <div id="checkout-summary-card" class="bg-white rounded-lg border border-zinc-200 p-4">
+        <div class="space-y-2 mb-4 text-sm">
+          <div class="flex justify-between text-zinc-600">
+            <span>Subtotal</span>
+            <span class="font-medium" id="total-val">Rp 0</span>
+          </div>
+          <div class="flex justify-between font-semibold text-zinc-900 text-base pt-2 border-t border-zinc-100">
+            <span>Total Pembayaran</span>
+            <span class="text-amber-600 font-bold" id="total-val-summary">Rp 0</span>
+          </div>
+        </div>
+        <button id="btn-checkout" onclick="window.kantinApp.handleCheckout()" class="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 focus-visible:ring-offset-2 flex justify-center items-center gap-2">
+          Pesan Sekarang
+        </button>
+      </div>
+      
+    </div>
+
+    <!-- View 2: Order Tracking -->
+    <div id="tracking-view" class="hidden">
+      <!-- Injected dynamically by app.js renderOrderTracking -->
+    </div>
+
+    <!-- View 3: Empty State -->
+    <div id="empty-cart-state" class="hidden flex-col items-center justify-center py-16 text-center">
+      <div class="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-400 mb-4">
+        <i data-lucide="shopping-cart" class="w-8 h-8"></i>
+      </div>
+      <h2 class="text-lg font-semibold text-zinc-900 mb-1">Keranjang masih kosong</h2>
+      <p class="text-sm text-zinc-500 mb-6">Pilih menu favorit Anda dan buat pesanan sekarang.</p>
+      <a href="index.html" class="inline-flex items-center justify-center bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40">
+        Jelajahi Menu
+      </a>
+    </div>
+
+  </main>
+
+  <!-- Mobile Bottom Nav -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 z-50 md:hidden">
+    <div class="flex justify-around items-center h-16">
+      <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 transition-colors duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+        <i data-lucide="home" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Beranda</span>
+      </a>
+      <a href="pesanan.html" class="flex flex-col items-center justify-center w-full h-full text-amber-600 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+        <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Pesanan</span>
+      </a>
+      <a href="tentang.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 transition-colors duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+        <i data-lucide="info" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Tentang</span>
+      </a>
+    </div>
+  </nav>
+
+  <script>
+    // Auto-select table if meja param exists in URL
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const mejaParam = urlParams.get('meja');
+      if (mejaParam) {
+        const select = document.getElementById('table-select');
+        if (select) select.value = mejaParam;
+      }
+      lucide.createIcons();
+    });
+  </script>
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
