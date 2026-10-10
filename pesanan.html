@@ -21,6 +21,24 @@
     }
   </script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .animate-pop {
+      animation: pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
 </head>
 <body class="bg-zinc-50 text-zinc-900 font-sans min-h-screen pb-24 md:pb-8">
 
@@ -71,24 +89,24 @@
         <div>
           <label class="block text-sm font-medium text-zinc-900 mb-2">Tipe Pesanan</label>
           <div class="grid grid-cols-2 gap-3">
-            <label class="relative cursor-pointer">
+            <label class="relative cursor-pointer active:scale-[0.98] transition-transform duration-150 select-none">
               <input type="radio" name="order-type" value="dine_in" onchange="window.toggleOrderType()" class="peer sr-only" checked>
-              <div class="p-3 border border-zinc-200 rounded-md flex flex-col items-center gap-1.5 peer-checked:border-amber-600 peer-checked:bg-amber-50/50 transition-colors duration-150 text-zinc-500 peer-checked:text-amber-700">
-                <i data-lucide="utensils" class="w-5 h-5"></i>
+              <div class="p-3 border border-zinc-200 rounded-md flex flex-col items-center gap-1.5 peer-checked:border-amber-600 peer-checked:bg-amber-50/50 transition-all duration-150 text-zinc-500 peer-checked:text-amber-700 shadow-sm">
+                <i data-lucide="utensils" class="w-5 h-5 transition-transform duration-150 peer-checked:scale-110"></i>
                 <span class="text-xs font-semibold">Makan di Tempat</span>
               </div>
             </label>
-            <label class="relative cursor-pointer">
+            <label class="relative cursor-pointer active:scale-[0.98] transition-transform duration-150 select-none">
               <input type="radio" name="order-type" value="takeaway" onchange="window.toggleOrderType()" class="peer sr-only">
-              <div class="p-3 border border-zinc-200 rounded-md flex flex-col items-center gap-1.5 peer-checked:border-amber-600 peer-checked:bg-amber-50/50 transition-colors duration-150 text-zinc-500 peer-checked:text-amber-700">
-                <i data-lucide="package" class="w-5 h-5"></i>
+              <div class="p-3 border border-zinc-200 rounded-md flex flex-col items-center gap-1.5 peer-checked:border-amber-600 peer-checked:bg-amber-50/50 transition-all duration-150 text-zinc-500 peer-checked:text-amber-700 shadow-sm">
+                <i data-lucide="package" class="w-5 h-5 transition-transform duration-150 peer-checked:scale-110"></i>
                 <span class="text-xs font-semibold">Bawa Pulang (Takeaway)</span>
               </div>
             </label>
           </div>
         </div>
 
-        <div id="table-select-group">
+        <div id="table-select-group" class="transition-all duration-200">
           <label for="table-select" class="block text-sm font-medium text-zinc-900 mb-1">Pilih Nomor Meja</label>
           <select id="table-select" class="w-full border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 focus-visible:border-amber-600 transition-colors duration-150">
             <option value="" disabled selected>Pilih meja (1 - 15)</option>
@@ -115,14 +133,14 @@
       <div class="bg-white rounded-lg border border-zinc-200 p-4">
         <label class="block text-sm font-medium text-zinc-900 mb-3">Metode Pembayaran</label>
         <div class="space-y-2">
-          <label class="flex items-center gap-3 p-3 border border-zinc-200 rounded-md cursor-pointer hover:bg-zinc-50 transition-colors duration-150 [&:has(:checked)]:border-amber-600 [&:has(:checked)]:bg-amber-50/40">
+          <label class="flex items-center gap-3 p-3 border border-zinc-200 rounded-md cursor-pointer hover:bg-zinc-50 active:scale-[0.99] transition-all duration-150 [&:has(:checked)]:border-amber-600 [&:has(:checked)]:bg-amber-50/40 select-none">
             <input type="radio" name="payment-method" value="kasir" class="w-4 h-4 text-amber-600 border-zinc-300 focus:ring-amber-600" checked>
             <div class="flex-1">
               <div class="text-sm font-semibold text-zinc-900">Bayar di Kasir</div>
               <div class="text-xs text-zinc-500">Bayar langsung saat mengambil pesanan (Tunai)</div>
             </div>
           </label>
-          <label class="flex items-center gap-3 p-3 border border-zinc-200 rounded-md cursor-pointer hover:bg-zinc-50 transition-colors duration-150 [&:has(:checked)]:border-amber-600 [&:has(:checked)]:bg-amber-50/40">
+          <label class="flex items-center gap-3 p-3 border border-zinc-200 rounded-md cursor-pointer hover:bg-zinc-50 active:scale-[0.99] transition-all duration-150 [&:has(:checked)]:border-amber-600 [&:has(:checked)]:bg-amber-50/40 select-none">
             <input type="radio" name="payment-method" value="qris" class="w-4 h-4 text-amber-600 border-zinc-300 focus:ring-amber-600">
             <div class="flex-1">
               <div class="text-sm font-semibold text-zinc-900">QRIS</div>
@@ -144,7 +162,7 @@
             <span class="text-amber-600 font-bold" id="total-val-summary">Rp 0</span>
           </div>
         </div>
-        <button id="btn-checkout" onclick="window.kantinApp.handleCheckout()" class="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 focus-visible:ring-offset-2 flex justify-center items-center gap-2">
+        <button id="btn-checkout" onclick="window.kantinApp.handleCheckout()" class="w-full bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 focus-visible:ring-offset-2 flex justify-center items-center gap-2 shadow-sm">
           Pesan Sekarang
         </button>
       </div>
@@ -158,12 +176,12 @@
 
     <!-- View 3: Empty State -->
     <div id="empty-cart-state" class="hidden flex-col items-center justify-center py-16 text-center">
-      <div class="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-400 mb-4">
+      <div class="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-400 mb-4 animate-pop">
         <i data-lucide="shopping-cart" class="w-8 h-8"></i>
       </div>
       <h2 class="text-lg font-semibold text-zinc-900 mb-1">Keranjang masih kosong</h2>
       <p class="text-sm text-zinc-500 mb-6">Pilih menu favorit Anda dan buat pesanan sekarang.</p>
-      <a href="index.html" class="inline-flex items-center justify-center bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40">
+      <a href="index.html" class="inline-flex items-center justify-center bg-amber-600 hover:bg-amber-700 active:scale-95 text-white px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 shadow-sm">
         Jelajahi Menu
       </a>
     </div>
@@ -173,15 +191,15 @@
   <!-- Mobile Bottom Nav -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 z-50 md:hidden">
     <div class="flex justify-around items-center h-16">
-      <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 transition-colors duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+      <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 active:scale-90 transition-transform duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
         <i data-lucide="home" class="w-5 h-5"></i>
         <span class="text-[10px] font-medium">Beranda</span>
       </a>
-      <a href="pesanan.html" class="flex flex-col items-center justify-center w-full h-full text-amber-600 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+      <a href="pesanan.html" class="flex flex-col items-center justify-center w-full h-full text-amber-600 active:scale-90 transition-transform duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
         <i data-lucide="clipboard-list" class="w-5 h-5"></i>
         <span class="text-[10px] font-medium">Pesanan</span>
       </a>
-      <a href="tentang.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 transition-colors duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+      <a href="tentang.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 active:scale-90 transition-transform duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
         <i data-lucide="info" class="w-5 h-5"></i>
         <span class="text-[10px] font-medium">Tentang</span>
       </a>

@@ -327,13 +327,51 @@ window.kantinApp = {
     });
   },
 
+  showToast(message) {
+    let container = document.getElementById("toast-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "toast-container";
+      container.className = "fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:w-80 z-[120] flex flex-col gap-2 pointer-events-none";
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement("div");
+    toast.className = "bg-zinc-900 text-white text-xs font-medium px-3.5 py-2.5 rounded-lg shadow-lg flex items-center gap-2.5 border border-zinc-800 transition-all duration-200 ease-out transform translate-y-3 opacity-0";
+    toast.innerHTML = `<span class="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">✓</span><span class="truncate flex-1">${message}</span>`;
+    container.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.classList.remove("translate-y-3", "opacity-0");
+      toast.classList.add("translate-y-0", "opacity-100");
+    });
+    setTimeout(() => {
+      toast.classList.remove("translate-y-0", "opacity-100");
+      toast.classList.add("translate-y-2", "opacity-0");
+      setTimeout(() => toast.remove(), 200);
+    }, 1800);
+  },
+
   deleteCartItem(id) {
+    const row = document.getElementById(`cart-row-${id}`);
+    if (row) {
+      row.style.transition = "all 200ms ease-out";
+      row.style.opacity = "0";
+      row.style.transform = "translateX(-16px)";
+      setTimeout(() => {
+        this._executeDeleteCartItem(id);
+      }, 200);
+    } else {
+      this._executeDeleteCartItem(id);
+    }
+  },
+
+  _executeDeleteCartItem(id) {
     let cart = this.getCart().filter((i) => i.id !== id);
     this.saveCart(cart);
     document.querySelectorAll(`.item-action-container[data-id="${id}"]`).forEach((c) => {
       this.renderItemControl(c, id, c.getAttribute("data-name"), parseInt(c.getAttribute("data-price")));
     });
     this.updateCartBadge();
+    this.showToast("Item dihapus dari keranjang");
   },
 
   updateCartItem(id, name, price, qtyChange, imgSrc = "") {
@@ -379,6 +417,10 @@ window.kantinApp = {
       cart.push({ id, name, price, qty: qtyChange, image: imgSrc });
     }
     this.saveCart(cart);
+
+    if (qtyChange > 0) {
+      this.showToast(`${name} ditambahkan`);
+    }
   },
 
   // ── Item Control Render (TAMBAH / qty buttons) ──
@@ -390,7 +432,7 @@ window.kantinApp = {
     }
     const hasV = container?.getAttribute("data-has-variants") === "true";
     if (hasV) {
-      container.innerHTML = `<button class="w-full bg-amber-600 hover:bg-amber-700 text-white py-1.5 rounded-md text-xs font-medium transition-colors duration-150" onclick="window.kantinApp.handleTambah(this, '${id}', '${escapeAttr(name)}', ${price})">TAMBAH</button>`;
+      container.innerHTML = `<button class="w-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white py-1.5 rounded-md text-xs font-medium transition-all duration-150 ease-out shadow-sm" onclick="window.kantinApp.handleTambah(this, '${id}', '${escapeAttr(name)}', ${price})">TAMBAH</button>`;
       return;
     }
     const cart = this.getCart();
@@ -398,16 +440,16 @@ window.kantinApp = {
     if (item && item.qty > 0) {
       container.innerHTML = `
         <div class="flex items-center justify-between">
-          <button class="w-7 h-7 rounded-md border border-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-zinc-50 transition-colors duration-150" onclick="window.kantinApp.updateQty('${id}', '${escapeAttr(name)}', ${price}, -1, event)">
+          <button class="w-7 h-7 rounded-md border border-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-zinc-50 active:scale-90 transition-all duration-150 ease-out" onclick="window.kantinApp.updateQty('${id}', '${escapeAttr(name)}', ${price}, -1, event)" aria-label="Kurangi">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
           </button>
-          <span class="text-sm font-semibold tabular-nums">${item.qty}</span>
-          <button class="w-7 h-7 rounded-md bg-amber-600 text-white flex items-center justify-center hover:bg-amber-700 transition-colors duration-150" onclick="window.kantinApp.updateQty('${id}', '${escapeAttr(name)}', ${price}, 1, event)">
+          <span class="text-sm font-semibold tabular-nums animate-pop px-1 inline-block">${item.qty}</span>
+          <button class="w-7 h-7 rounded-md bg-amber-600 text-white flex items-center justify-center hover:bg-amber-700 active:scale-90 transition-all duration-150 ease-out shadow-sm" onclick="window.kantinApp.updateQty('${id}', '${escapeAttr(name)}', ${price}, 1, event)" aria-label="Tambah">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           </button>
         </div>`;
     } else {
-      container.innerHTML = `<button class="w-full bg-amber-600 hover:bg-amber-700 text-white py-1.5 rounded-md text-xs font-medium transition-colors duration-150" onclick="window.kantinApp.handleTambah(this, '${id}', '${escapeAttr(name)}', ${price})">TAMBAH</button>`;
+      container.innerHTML = `<button class="w-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white py-1.5 rounded-md text-xs font-medium transition-all duration-150 ease-out shadow-sm" onclick="window.kantinApp.handleTambah(this, '${id}', '${escapeAttr(name)}', ${price})">TAMBAH</button>`;
     }
   },
 
@@ -443,6 +485,13 @@ window.kantinApp = {
       }
       document.querySelectorAll(".desktop-cart-badge").forEach((el) => el.classList.add("hidden"));
     }
+
+    // Micro-interaction pop animation on badges
+    document.querySelectorAll(".desktop-cart-badge, .cart-total-qty").forEach((el) => {
+      el.classList.remove("animate-pop");
+      void el.offsetWidth;
+      el.classList.add("animate-pop");
+    });
 
     if (document.getElementById("cart-items-container")) this.renderCartPage();
   },
@@ -530,11 +579,16 @@ window.kantinApp = {
     this.updateVariantTotal();
     const modal = el("variantModal");
     const content = el("variantContent");
+    const overlay = modal.querySelector(".bg-zinc-900\\/40, [onclick*='closeVariantModal']");
     modal.classList.remove("hidden");
     modal.classList.add("flex");
+    if (overlay) {
+      overlay.classList.add("opacity-0");
+      requestAnimationFrame(() => overlay.classList.remove("opacity-0"));
+    }
     requestAnimationFrame(() => {
-      content.classList.remove("translate-y-full", "sm:scale-95");
-      content.classList.add("translate-y-0", "sm:scale-100");
+      content.classList.remove("translate-y-full", "scale-95", "opacity-0");
+      content.classList.add("translate-y-0", "scale-100", "opacity-100");
     });
     document.body.style.overflow = "hidden";
   },
@@ -543,12 +597,15 @@ window.kantinApp = {
     const modal = document.getElementById("variantModal");
     const content = document.getElementById("variantContent");
     if (!modal) return;
+    const overlay = modal.querySelector(".bg-zinc-900\\/40, [onclick*='closeVariantModal']");
+    if (overlay) overlay.classList.add("opacity-0");
     content.style.transform = "";
-    content.classList.remove("translate-y-0", "sm:scale-100");
-    content.classList.add("translate-y-full", "sm:scale-95");
+    content.classList.remove("translate-y-0", "scale-100", "opacity-100");
+    content.classList.add("translate-y-full", "scale-95", "opacity-0");
     setTimeout(() => {
       modal.classList.add("hidden");
       modal.classList.remove("flex");
+      if (overlay) overlay.classList.remove("opacity-0");
       this.currentVariantItem = null;
       document.body.style.overflow = "";
     }, 200);
@@ -604,15 +661,15 @@ window.kantinApp = {
       }
 
       html += `
-        <article class="rounded-lg border border-zinc-200 bg-white overflow-hidden flex flex-col relative" id="card-${id}" data-category="${menu.category}" data-is-rekomendasi="${menu.rekomendasi}">
-          ${menu.rekomendasi ? `<span class="absolute top-2 left-2 bg-amber-50 text-amber-700 text-[10px] font-medium px-1.5 py-0.5 rounded z-10">Rekomendasi</span>` : ""}
+        <article class="rounded-lg border border-zinc-200 bg-white overflow-hidden flex flex-col relative group transition-all duration-200 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-sm" id="card-${id}" data-category="${menu.category}" data-is-rekomendasi="${menu.rekomendasi}">
+          ${menu.rekomendasi ? `<span class="absolute top-2 left-2 bg-amber-50 text-amber-700 text-[10px] font-medium px-1.5 py-0.5 rounded z-10 shadow-sm">Rekomendasi</span>` : ""}
           ${categoryBadge}
-          <div class="aspect-[4/3] bg-zinc-100 overflow-hidden">
-            <img src="${menu.image || "https://placehold.co/400x300/f4f4f5/a1a1aa?text=No+Image"}" alt="${menu.name}" class="w-full h-full object-cover" loading="lazy" width="400" height="300">
+          <div class="aspect-[4/3] bg-zinc-100 overflow-hidden relative">
+            <img src="${menu.image || "https://placehold.co/400x300/f4f4f5/a1a1aa?text=No+Image"}" alt="${menu.name}" class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105" loading="lazy" width="400" height="300">
           </div>
           <div class="p-3 flex flex-col flex-1 justify-between">
             <div>
-              <h3 class="font-medium text-sm text-zinc-900 line-clamp-1 mb-1">${menu.name}</h3>
+              <h3 class="font-medium text-sm text-zinc-900 line-clamp-1 mb-1 transition-colors duration-150 group-hover:text-amber-700">${menu.name}</h3>
               <p class="text-amber-600 font-semibold text-sm">${formatRupiah(menu.price)}</p>
             </div>
             <div class="item-action-container w-full mt-3" data-id="${id}" data-name="${escapeAttr(menu.name)}" data-price="${menu.price}" data-stock="${isAvailable}" ${menu.hasVariants ? 'data-has-variants="true"' : ""}></div>
@@ -678,7 +735,7 @@ window.kantinApp = {
     if (cartView) cartView.style.display = "block";
 
     container.innerHTML = cart.map((item) => `
-      <div class="flex gap-3 items-center py-3 border-b border-zinc-100 last:border-0">
+      <div id="cart-row-${item.id}" class="flex gap-3 items-center py-3 border-b border-zinc-100 last:border-0 transition-all duration-200">
         <div class="w-12 h-12 rounded-md bg-zinc-100 overflow-hidden shrink-0">
           ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy">` : `<div class="w-full h-full flex items-center justify-center text-zinc-300"><i data-lucide="utensils" class="w-5 h-5"></i></div>`}
         </div>
@@ -686,18 +743,18 @@ window.kantinApp = {
           <h4 class="font-medium text-sm text-zinc-900 truncate">${item.name}</h4>
           <p class="text-amber-600 font-semibold text-xs mt-0.5">${formatRupiah(item.price)}</p>
           <div class="flex items-center gap-2 mt-1.5">
-            <button class="w-6 h-6 rounded border border-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-zinc-50 transition-colors duration-150" onclick="window.kantinApp.updateQty('${item.id}', '${escapeAttr(item.name)}', ${item.price}, -1)">
+            <button class="w-6 h-6 rounded border border-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-zinc-50 active:scale-90 transition-all duration-150" onclick="window.kantinApp.updateQty('${item.id}', '${escapeAttr(item.name)}', ${item.price}, -1)">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
             </button>
-            <span class="text-xs font-semibold tabular-nums w-4 text-center">${item.qty}</span>
-            <button class="w-6 h-6 rounded bg-amber-600 text-white flex items-center justify-center hover:bg-amber-700 transition-colors duration-150" onclick="window.kantinApp.updateQty('${item.id}', '${escapeAttr(item.name)}', ${item.price}, 1)">
+            <span class="text-xs font-semibold tabular-nums w-4 text-center animate-pop">${item.qty}</span>
+            <button class="w-6 h-6 rounded bg-amber-600 text-white flex items-center justify-center hover:bg-amber-700 active:scale-90 transition-all duration-150 shadow-sm" onclick="window.kantinApp.updateQty('${item.id}', '${escapeAttr(item.name)}', ${item.price}, 1)">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             </button>
           </div>
         </div>
         <div class="text-right flex flex-col items-end gap-2">
           <p class="font-semibold text-sm text-zinc-900">${formatRupiah(item.price * item.qty)}</p>
-          <button onclick="window.kantinApp.deleteCartItem('${item.id}')" class="w-7 h-7 rounded-md text-red-400 hover:bg-red-50 flex items-center justify-center transition-colors duration-150" aria-label="Hapus item">
+          <button onclick="window.kantinApp.deleteCartItem('${item.id}')" class="w-7 h-7 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 active:scale-75 flex items-center justify-center transition-all duration-150" aria-label="Hapus item">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           </button>
         </div>
@@ -892,51 +949,54 @@ window.kantinApp = {
       const active = i === stateIdx && order.status !== "selesai";
       const lineColor = i < stateIdx ? "bg-amber-600" : "bg-zinc-200";
       const iconColor = done ? "text-amber-600" : active ? "text-amber-600" : "text-zinc-300";
-      const labelColor = done || active ? "text-zinc-900" : "text-zinc-400";
+      const labelColor = done || active ? "text-zinc-900 font-semibold" : "text-zinc-400";
       return `
         <div class="flex items-start gap-3">
           <div class="flex flex-col items-center">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center ${done || active ? "bg-amber-50" : "bg-zinc-50"} ${iconColor}">
-              <i data-lucide="${stateIcons[i]}" class="w-4 h-4"></i>
+            <div class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${done || active ? "bg-amber-50" : "bg-zinc-50"} ${iconColor} ${active ? "ring-4 ring-amber-500/20 shadow-sm" : ""}">
+              <i data-lucide="${stateIcons[i]}" class="w-4 h-4 ${active ? "animate-pulse" : ""}"></i>
             </div>
-            ${i < stateLabels.length - 1 ? `<div class="w-0.5 h-8 ${lineColor} mt-1"></div>` : ""}
+            ${i < stateLabels.length - 1 ? `<div class="w-0.5 h-8 ${lineColor} mt-1 transition-colors duration-300"></div>` : ""}
           </div>
           <div class="pt-1">
-            <p class="text-sm font-medium ${labelColor}">${label}</p>
-            ${active && order.status === "sedang_dimasak" && order.queuePosition ? `<p class="text-xs text-zinc-400 mt-0.5">Antrian ke-${order.queuePosition}</p>` : ""}
+            <p class="text-sm ${labelColor}">${label}</p>
+            ${active && order.status === "sedang_dimasak" && order.queuePosition ? `<p class="text-xs text-amber-600 font-medium mt-0.5 animate-pulse">Antrian ke-${order.queuePosition}</p>` : ""}
           </div>
         </div>`;
     }).join("");
 
-    const itemsHTML = order.items?.map((i) => `<li class="text-sm text-zinc-600">${i.qty}x ${i.name}</li>`).join("") || "";
+    const itemsHTML = order.items?.map((i) => `<li class="text-sm text-zinc-600 flex justify-between"><span>${i.qty}x ${i.name}</span><span class="font-medium text-zinc-800">${formatRupiah(i.price * i.qty)}</span></li>`).join("") || "";
 
     trackingView.innerHTML = `
-      <div class="rounded-lg border border-zinc-200 bg-white p-6">
+      <div class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300">
         <div class="text-center mb-6">
-          <p class="text-xs font-medium uppercase tracking-wider text-zinc-400 mb-1">Nomor Antrian</p>
-          <p class="text-5xl font-bold font-mono tabular-nums text-zinc-900">#${String(order.nomorAntrian).padStart(3, "0")}</p>
-          <p class="text-sm text-zinc-500 mt-2">${order.namaPemesan} · ${tipeText}</p>
+          <p class="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Nomor Antrian</p>
+          <p class="text-5xl font-bold font-mono tabular-nums text-zinc-900 tracking-tight animate-pop">${String(order.nomorAntrian).padStart(3, "0")}</p>
+          <p class="text-sm text-zinc-500 mt-2 font-medium">${order.namaPemesan} · ${tipeText}</p>
         </div>
         <div class="border-t border-zinc-100 pt-6 mb-6">
           ${timelineHTML}
         </div>
         <div class="border-t border-zinc-100 pt-4">
-          <p class="text-xs font-medium uppercase tracking-wider text-zinc-400 mb-2">Detail Pesanan</p>
-          <ul class="space-y-1 mb-3">${itemsHTML}</ul>
-          <div class="flex items-center justify-between text-sm">
+          <p class="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Detail Pesanan</p>
+          <ul class="space-y-1.5 mb-3">${itemsHTML}</ul>
+          <div class="flex items-center justify-between text-sm pt-2 border-t border-zinc-100">
             <span class="font-semibold text-zinc-900">${formatRupiah(order.total)}</span>
-            <span class="text-zinc-400">${order.metodePembayaran === "qris" ? "QRIS" : "Bayar di Kasir"}</span>
+            <span class="text-xs font-medium uppercase text-zinc-400">${order.metodePembayaran === "qris" ? "QRIS" : "Bayar di Kasir"}</span>
           </div>
-          <p class="text-xs text-zinc-400 mt-2 font-mono">${order.orderCode}</p>
+          <p class="text-[11px] text-zinc-400 mt-2 font-mono">${order.orderCode}</p>
         </div>
         ${order.status === "siap_diambil" ? `
-          <div class="mt-4 p-4 rounded-lg bg-green-50 border border-green-200 text-center">
-            <p class="text-green-700 font-semibold text-sm">Pesanan siap diambil!</p>
-            <p class="text-green-600 text-xs mt-1">${order.tipe === "dine_in" ? "Pesanan akan diantar ke meja Anda." : "Silakan ambil di counter."}</p>
+          <div class="mt-4 p-4 rounded-lg bg-green-50 border border-green-200 text-center transition-all duration-300">
+            <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-2 animate-bounce">
+              <i data-lucide="bell-ring" class="w-5 h-5"></i>
+            </div>
+            <p class="text-green-800 font-bold text-sm">Pesanan Anda Siap Diambil!</p>
+            <p class="text-green-700 text-xs mt-1 font-medium">${order.tipe === "dine_in" ? "Pesanan akan diantar ke meja Anda." : "Silakan ambil pesanan Anda di counter."}</p>
           </div>
         ` : ""}
         ${order.status === "selesai" ? `
-          <button onclick="window.kantinApp.dismissOrder('${order.id}')" class="w-full mt-4 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-md text-sm font-medium transition-colors duration-150">Pesan Lagi</button>
+          <button onclick="window.kantinApp.dismissOrder('${order.id}')" class="w-full mt-4 bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white py-2.5 rounded-md text-sm font-medium transition-all duration-150 shadow-sm">Pesan Lagi</button>
         ` : ""}
       </div>`;
 

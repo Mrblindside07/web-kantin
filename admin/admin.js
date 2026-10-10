@@ -27,12 +27,27 @@ function generateSlug(name) {
 }
 
 // ─── Sound Notification ───
+// ─── Sound & Toast Notification ───
 function playNotificationSound() {
   const audio = document.getElementById('orderNotificationSound');
   if (audio) {
     audio.currentTime = 0;
     audio.play().catch(e => console.log('Audio autoplay blocked by browser:', e));
   }
+}
+
+function showAdminToast(message) {
+  const toast = document.getElementById('admin-toast');
+  if (!toast) return;
+  toast.innerHTML = `<i data-lucide="bell-ring" class="w-4 h-4 text-amber-400 animate-bounce"></i> <span>${message}</span>`;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  toast.classList.remove('opacity-0', '-translate-y-4', 'pointer-events-none');
+  toast.classList.add('opacity-100', 'translate-y-0');
+  clearTimeout(window._adminToastTimer);
+  window._adminToastTimer = setTimeout(() => {
+    toast.classList.remove('opacity-100', 'translate-y-0');
+    toast.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
+  }, 4000);
 }
 
 // ─── Firebase Order Listeners ───
@@ -42,16 +57,26 @@ function initOrderListeners() {
     allOrders = snapshot.val() || {};
     const ordersList = Object.entries(allOrders).map(([id, o]) => ({ id, ...o }));
 
-    // Detect new pending orders for chime
+    // Detect new pending orders for chime & toast
     const pending = ordersList.filter(o => o.status === 'menunggu_konfirmasi' || o.status === 'menunggu_bayar');
     const pendingIds = new Set(pending.map(o => o.id));
 
     if (!isInitialLoad) {
       let hasNew = false;
+      let newOrder = null;
       for (const id of pendingIds) {
-        if (!knownPendingIds.has(id)) { hasNew = true; break; }
+        if (!knownPendingIds.has(id)) {
+          hasNew = true;
+          newOrder = allOrders[id];
+          break;
+        }
       }
-      if (hasNew) playNotificationSound();
+      if (hasNew) {
+        playNotificationSound();
+        const qNum = newOrder ? String(newOrder.nomorAntrian || '').padStart(3, '0') : '';
+        const pemesan = newOrder?.namaPemesan ? ` (${newOrder.namaPemesan})` : '';
+        showAdminToast(`Pesanan Baru Masuk! #${qNum}${pemesan}`);
+      }
     }
     knownPendingIds = pendingIds;
     isInitialLoad = false;
@@ -147,19 +172,19 @@ function createOrderCard(order, stage) {
   let actionButton = '';
   if (stage === 'pending') {
     actionButton = `
-      <button onclick="window.confirmAndCook('${order.id}')" class="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-md text-xs font-medium transition-colors duration-150">
+      <button onclick="window.confirmAndCook('${order.id}')" class="w-full mt-3 bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white py-2 rounded-md text-xs font-medium transition-all duration-150 shadow-sm">
         Konfirmasi & Masak
       </button>
     `;
   } else if (stage === 'cooking') {
     actionButton = `
-      <button onclick="window.markReady('${order.id}')" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md text-xs font-medium transition-colors duration-150">
+      <button onclick="window.markReady('${order.id}')" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white py-2 rounded-md text-xs font-medium transition-all duration-150 shadow-sm">
         Selesai Masak
       </button>
     `;
   } else if (stage === 'ready') {
     actionButton = `
-      <button onclick="window.markCompleted('${order.id}')" class="w-full mt-3 bg-green-600 hover:bg-green-700 text-white py-2 rounded-md text-xs font-medium transition-colors duration-150">
+      <button onclick="window.markCompleted('${order.id}')" class="w-full mt-3 bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white py-2 rounded-md text-xs font-medium transition-all duration-150 shadow-sm">
         Sudah Diambil
       </button>
     `;
@@ -168,7 +193,7 @@ function createOrderCard(order, stage) {
   const timeFormatted = order.timestamp ? new Date(order.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
 
   return `
-    <div class="p-4 border border-zinc-200 rounded-lg mb-3 bg-white hover:border-zinc-300 transition-colors duration-150">
+    <div id="order-card-${order.id}" class="p-4 border border-zinc-200 rounded-lg mb-3 bg-white hover:border-zinc-300 transition-all duration-200 shadow-sm">
       <div class="flex items-center justify-between mb-2">
         <span class="font-mono font-bold text-lg text-zinc-900">#${queue}</span>
         ${tipeBadge}
@@ -194,6 +219,12 @@ function createOrderCard(order, stage) {
 // ─── Order Actions ───
 window.confirmAndCook = async function(orderId) {
   try {
+    const card = document.getElementById(`order-card-${orderId}`);
+    if (card) {
+      card.classList.add('opacity-0', 'scale-95', '-translate-y-2');
+      await new Promise(r => setTimeout(r, 160));
+    }
+
     const order = allOrders[orderId];
     if (order && order.items) {
       // Stock deduction
@@ -238,6 +269,11 @@ window.confirmAndCook = async function(orderId) {
 
 window.markReady = async function(orderId) {
   try {
+    const card = document.getElementById(`order-card-${orderId}`);
+    if (card) {
+      card.classList.add('opacity-0', 'scale-95', '-translate-y-2');
+      await new Promise(r => setTimeout(r, 160));
+    }
     await update(ref(db, "orders/" + orderId), { status: 'siap_diambil' });
   } catch (e) {
     console.error("Gagal update status siap diambil:", e);
@@ -246,6 +282,11 @@ window.markReady = async function(orderId) {
 
 window.markCompleted = async function(orderId) {
   try {
+    const card = document.getElementById(`order-card-${orderId}`);
+    if (card) {
+      card.classList.add('opacity-0', 'scale-95', '-translate-y-2');
+      await new Promise(r => setTimeout(r, 160));
+    }
     await update(ref(db, "orders/" + orderId), {
       status: 'selesai',
       waktuSelesai: new Date().toISOString()
@@ -436,8 +477,8 @@ function renderMenuTable() {
           <td class="px-4 py-3 font-semibold text-zinc-900">${formatRupiah(m.price)}</td>
           <td class="px-4 py-3 text-zinc-600">${stockDisplay}</td>
           <td class="px-4 py-3 text-right space-x-2">
-            <button onclick="window.openEditMenu('${m.id}')" class="text-xs px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded font-medium transition-colors">Edit</button>
-            <button onclick="window.deleteMenu('${m.id}', '${m.name.replace(/'/g, "\\'")}')" class="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded font-medium transition-colors">Hapus</button>
+            <button onclick="window.openEditMenu('${m.id}')" class="text-xs px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 rounded font-medium transition-all duration-150">Edit</button>
+            <button onclick="window.deleteMenu('${m.id}', '${m.name.replace(/'/g, "\\'")}')" class="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 active:scale-95 text-red-600 rounded font-medium transition-all duration-150">Hapus</button>
           </td>
         </tr>
       `;
@@ -449,7 +490,7 @@ function renderMenuTable() {
     let pBtns = '';
     for (let i = 1; i <= totalPages; i++) {
       pBtns += `
-        <button onclick="window.goToMenuPage(${i})" class="px-3 py-1 rounded text-xs font-medium border ${i === currentMenuPage ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}">
+        <button onclick="window.goToMenuPage(${i})" class="px-3 py-1 rounded text-xs font-medium border active:scale-95 transition-all duration-150 ${i === currentMenuPage ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}">
           ${i}
         </button>
       `;
@@ -488,6 +529,22 @@ window.deleteMenu = async function(id, name) {
 };
 
 // ─── Edit Menu Modal ───
+window.closeEditMenuModal = function() {
+  const modal = document.getElementById('edit-menu-modal');
+  if (!modal) return;
+  const dialog = modal.querySelector('.relative.bg-white');
+  if (dialog) {
+    dialog.classList.remove('scale-100', 'opacity-100');
+    dialog.classList.add('scale-95', 'opacity-0');
+  }
+  modal.classList.add('opacity-0');
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    modal.classList.remove('opacity-0');
+    modal.innerHTML = '';
+  }, 180);
+};
+
 window.openEditMenu = function(id) {
   const m = allMenus[id];
   if (!m) return;
@@ -498,20 +555,20 @@ window.openEditMenu = function(id) {
   const stockVal = typeof m.stock === 'number' ? m.stock : 10;
 
   modal.innerHTML = `
-    <div class="relative bg-white rounded-lg border border-zinc-200 w-full max-w-lg p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+    <div class="relative bg-white rounded-lg border border-zinc-200 w-full max-w-lg p-6 shadow-xl max-h-[90vh] overflow-y-auto transform scale-95 opacity-0 transition-all duration-200">
       <div class="flex justify-between items-center mb-4 pb-2 border-b border-zinc-100">
         <h3 class="font-semibold text-lg text-zinc-900">Edit Menu</h3>
-        <button onclick="document.getElementById('edit-menu-modal').classList.add('hidden')" class="text-zinc-400 hover:text-zinc-600 p-1">✕</button>
+        <button onclick="window.closeEditMenuModal()" class="text-zinc-400 hover:text-zinc-600 p-1 active:scale-90 transition-transform">✕</button>
       </div>
       <form id="edit-form-${id}" class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-zinc-700 mb-1">Nama Menu</label>
-          <input type="text" id="edit-name-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm" value="${m.name || ''}" required>
+          <input type="text" id="edit-name-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600" value="${m.name || ''}" required>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">Kategori</label>
-            <select id="edit-category-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm">
+            <select id="edit-category-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600">
               <option value="berat" ${m.category === 'berat' ? 'selected' : ''}>Makanan Berat</option>
               <option value="mie" ${m.category === 'mie' ? 'selected' : ''}>Mie</option>
               <option value="cemilan" ${m.category === 'cemilan' ? 'selected' : ''}>Cemilan</option>
@@ -522,26 +579,30 @@ window.openEditMenu = function(id) {
           </div>
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">Harga (Rp)</label>
-            <input type="number" id="edit-price-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm" value="${m.price || 0}" required>
+            <input type="number" id="edit-price-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600" value="${m.price || 0}" required>
           </div>
         </div>
         <div>
           <label class="block text-xs font-medium text-zinc-700 mb-1">Stok</label>
-          <input type="number" id="edit-stock-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm" value="${stockVal}" required>
+          <input type="number" id="edit-stock-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600" value="${stockVal}" required>
         </div>
         <div class="flex items-center gap-2 pt-2">
-          <input type="checkbox" id="edit-reko-${id}" class="rounded text-amber-600" ${m.rekomendasi ? 'checked' : ''}>
+          <input type="checkbox" id="edit-reko-${id}" class="rounded text-amber-600 focus:ring-amber-600" ${m.rekomendasi ? 'checked' : ''}>
           <label for="edit-reko-${id}" class="text-xs font-medium text-zinc-700">Rekomendasi</label>
         </div>
         <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100">
-          <button type="button" onclick="document.getElementById('edit-menu-modal').classList.add('hidden')" class="px-4 py-2 border border-zinc-300 rounded-md text-sm font-medium hover:bg-zinc-50">Batal</button>
-          <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-sm font-medium transition-colors">Simpan Perubahan</button>
+          <button type="button" onclick="window.closeEditMenuModal()" class="px-4 py-2 border border-zinc-300 rounded-md text-sm font-medium hover:bg-zinc-50 active:scale-95 transition-all duration-150">Batal</button>
+          <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-md text-sm font-medium transition-all duration-150 shadow-sm">Simpan Perubahan</button>
         </div>
       </form>
     </div>
   `;
 
   modal.classList.remove('hidden');
+  requestAnimationFrame(() => {
+    const dialog = modal.querySelector('.relative.bg-white');
+    if (dialog) dialog.classList.remove('scale-95', 'opacity-0');
+  });
 
   document.getElementById(`edit-form-${id}`).addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -554,7 +615,7 @@ window.openEditMenu = function(id) {
         rekomendasi: document.getElementById(`edit-reko-${id}`).checked
       };
       await update(ref(db, "menus/" + id), updated);
-      modal.classList.add('hidden');
+      window.closeEditMenuModal();
     } catch (err) {
       console.error('Gagal update menu:', err);
       alert('Gagal menyimpan perubahan.');
@@ -581,10 +642,10 @@ function renderRekoTable() {
   }
 
   tbody.innerHTML = menus.map(m => `
-    <tr class="hover:bg-zinc-50/50 border-b border-zinc-100">
+    <tr class="hover:bg-zinc-50/50 border-b border-zinc-100 transition-colors duration-150">
       <td class="p-3 font-medium text-zinc-900">${m.name}</td>
       <td class="p-3 text-right">
-        <button onclick="window.toggleRekomendasi('${m.id}', ${!m.rekomendasi})" class="text-xs px-2.5 py-1 rounded font-medium transition-colors ${m.rekomendasi ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}">
+        <button onclick="window.toggleRekomendasi('${m.id}', ${!m.rekomendasi})" class="text-xs px-2.5 py-1 rounded font-medium active:scale-95 transition-all duration-150 ${m.rekomendasi ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}">
           ${m.rekomendasi ? '★ Rekomendasi' : 'Jadikan Rekomendasi'}
         </button>
       </td>

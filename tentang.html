@@ -21,6 +21,24 @@
     }
   </script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .animate-pop {
+      animation: pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
 </head>
 <body class="bg-zinc-50 text-zinc-900 font-sans min-h-screen pb-24 md:pb-8">
 
@@ -41,29 +59,29 @@
   <main class="max-w-xl mx-auto px-4 py-6">
     
     <!-- App Card -->
-    <div class="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center text-center mb-6">
-      <img src="Menu/Logo Kantin Biru V2.png" alt="Logo" class="w-20 h-20 object-contain mb-4">
+    <div class="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center text-center mb-6 shadow-sm">
+      <img src="Menu/Logo Kantin Biru V2.png" alt="Logo" class="w-20 h-20 object-contain mb-4 animate-pop">
       <h2 class="text-xl font-bold text-zinc-900">Kantin Biru</h2>
       <p class="text-sm font-medium text-zinc-500 mt-1 bg-zinc-100 px-2.5 py-0.5 rounded-md">v2.0 Beta</p>
     </div>
 
     <!-- Links List -->
-    <div class="bg-white rounded-lg border border-zinc-200 divide-y divide-zinc-100 overflow-hidden mb-6">
-      <a href="#" class="flex items-center justify-between p-4 hover:bg-zinc-50 transition-colors duration-150 focus-visible:outline-none focus-visible:bg-zinc-50">
+    <div class="bg-white rounded-lg border border-zinc-200 divide-y divide-zinc-100 overflow-hidden mb-6 shadow-sm">
+      <a href="#" class="flex items-center justify-between p-4 hover:bg-zinc-50 active:scale-[0.99] transition-all duration-150 focus-visible:outline-none focus-visible:bg-zinc-50 select-none">
         <div class="flex items-center gap-3 text-zinc-700">
           <i data-lucide="help-circle" class="w-5 h-5 text-zinc-400"></i>
           <span class="text-sm font-medium">Pusat Bantuan</span>
         </div>
         <i data-lucide="external-link" class="w-4 h-4 text-zinc-400"></i>
       </a>
-      <button onclick="document.getElementById('modal-tnc').classList.remove('hidden')" class="w-full flex items-center justify-between p-4 hover:bg-zinc-50 transition-colors duration-150 focus-visible:outline-none focus-visible:bg-zinc-50 text-left">
+      <button onclick="openModal('modal-tnc')" class="w-full flex items-center justify-between p-4 hover:bg-zinc-50 active:scale-[0.99] transition-all duration-150 focus-visible:outline-none focus-visible:bg-zinc-50 text-left select-none">
         <div class="flex items-center gap-3 text-zinc-700">
           <i data-lucide="file-text" class="w-5 h-5 text-zinc-400"></i>
           <span class="text-sm font-medium">Syarat & Ketentuan</span>
         </div>
         <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-400"></i>
       </button>
-      <button onclick="document.getElementById('modal-about').classList.remove('hidden')" class="w-full flex items-center justify-between p-4 hover:bg-zinc-50 transition-colors duration-150 focus-visible:outline-none focus-visible:bg-zinc-50 text-left">
+      <button onclick="openModal('modal-about')" class="w-full flex items-center justify-between p-4 hover:bg-zinc-50 active:scale-[0.99] transition-all duration-150 focus-visible:outline-none focus-visible:bg-zinc-50 text-left select-none">
         <div class="flex items-center gap-3 text-zinc-700">
           <i data-lucide="users" class="w-5 h-5 text-zinc-400"></i>
           <span class="text-sm font-medium">Tentang Kami</span>
@@ -81,15 +99,15 @@
   <!-- Mobile Bottom Nav -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 z-50 md:hidden">
     <div class="flex justify-around items-center h-16">
-      <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 transition-colors duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+      <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 active:scale-90 transition-transform duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
         <i data-lucide="home" class="w-5 h-5"></i>
         <span class="text-[10px] font-medium">Beranda</span>
       </a>
-      <a href="pesanan.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 transition-colors duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+      <a href="pesanan.html" class="flex flex-col items-center justify-center w-full h-full text-zinc-400 hover:text-zinc-600 active:scale-90 transition-transform duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
         <i data-lucide="clipboard-list" class="w-5 h-5"></i>
         <span class="text-[10px] font-medium">Pesanan</span>
       </a>
-      <a href="tentang.html" class="flex flex-col items-center justify-center w-full h-full text-amber-600 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
+      <a href="tentang.html" class="flex flex-col items-center justify-center w-full h-full text-amber-600 active:scale-90 transition-transform duration-150 gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 relative">
         <i data-lucide="info" class="w-5 h-5"></i>
         <span class="text-[10px] font-medium">Tentang</span>
       </a>
@@ -98,11 +116,11 @@
 
   <!-- Modal T&C -->
   <div id="modal-tnc" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div class="absolute inset-0 bg-zinc-900/40" onclick="document.getElementById('modal-tnc').classList.add('hidden')"></div>
-    <div class="relative bg-white rounded-lg w-full max-w-sm max-h-[80vh] flex flex-col shadow-lg">
+    <div class="absolute inset-0 bg-zinc-900/40 opacity-0 transition-opacity duration-200" onclick="closeModal('modal-tnc')"></div>
+    <div class="relative bg-white rounded-lg w-full max-w-sm max-h-[80vh] flex flex-col shadow-lg transform scale-95 opacity-0 transition-all duration-200">
       <div class="p-4 border-b border-zinc-200 flex justify-between items-center">
         <h3 class="font-semibold text-zinc-900">Syarat & Ketentuan</h3>
-        <button onclick="document.getElementById('modal-tnc').classList.add('hidden')" class="text-zinc-400 hover:text-zinc-600">
+        <button onclick="closeModal('modal-tnc')" class="text-zinc-400 hover:text-zinc-600 p-1 active:scale-90 transition-transform">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -116,11 +134,11 @@
 
   <!-- Modal About -->
   <div id="modal-about" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div class="absolute inset-0 bg-zinc-900/40" onclick="document.getElementById('modal-about').classList.add('hidden')"></div>
-    <div class="relative bg-white rounded-lg w-full max-w-sm flex flex-col shadow-lg">
+    <div class="absolute inset-0 bg-zinc-900/40 opacity-0 transition-opacity duration-200" onclick="closeModal('modal-about')"></div>
+    <div class="relative bg-white rounded-lg w-full max-w-sm flex flex-col shadow-lg transform scale-95 opacity-0 transition-all duration-200">
       <div class="p-4 border-b border-zinc-200 flex justify-between items-center">
         <h3 class="font-semibold text-zinc-900">Tentang Kami</h3>
-        <button onclick="document.getElementById('modal-about').classList.add('hidden')" class="text-zinc-400 hover:text-zinc-600">
+        <button onclick="closeModal('modal-about')" class="text-zinc-400 hover:text-zinc-600 p-1 active:scale-90 transition-transform">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -130,6 +148,34 @@
     </div>
   </div>
 
-  <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
+  <script>
+    function openModal(id) {
+      const modal = document.getElementById(id);
+      if (!modal) return;
+      const overlay = modal.querySelector('.bg-zinc-900\\/40');
+      const dialog = modal.querySelector('.relative.bg-white');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      requestAnimationFrame(() => {
+        if (overlay) overlay.classList.remove('opacity-0');
+        if (dialog) dialog.classList.remove('scale-95', 'opacity-0');
+      });
+    }
+
+    function closeModal(id) {
+      const modal = document.getElementById(id);
+      if (!modal) return;
+      const overlay = modal.querySelector('.bg-zinc-900\\/40');
+      const dialog = modal.querySelector('.relative.bg-white');
+      if (overlay) overlay.classList.add('opacity-0');
+      if (dialog) dialog.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }, 180);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
+  </script>
 </body>
 </html>
