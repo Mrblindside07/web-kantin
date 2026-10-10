@@ -477,13 +477,17 @@ window.kantinApp = {
       document.querySelectorAll(".desktop-cart-badge").forEach((el) => {
         el.textContent = totalQty;
         el.classList.remove("hidden");
+        el.classList.add("inline-flex");
       });
     } else {
       if (bar) {
         bar.classList.add("hidden");
         bar.classList.add("cart-hidden");
       }
-      document.querySelectorAll(".desktop-cart-badge").forEach((el) => el.classList.add("hidden"));
+      document.querySelectorAll(".desktop-cart-badge").forEach((el) => {
+        el.classList.add("hidden");
+        el.classList.remove("inline-flex");
+      });
     }
 
     // Micro-interaction pop animation on badges

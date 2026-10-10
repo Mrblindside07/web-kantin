@@ -46,19 +46,18 @@
   <!-- Header -->
   <header class="sticky top-0 z-40 bg-white border-b border-zinc-200">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="index.html" class="flex items-center gap-3">
-        <img src="Menu/Logo Kantin Biru V2.png" alt="Logo" class="w-8 h-8 object-contain">
-        <h1 class="text-lg font-semibold tracking-tight text-zinc-900">Kantin Biru</h1>
+      <a href="index.html" class="flex items-center gap-2.5 shrink-0">
+        <img src="Menu/Logo Kantin Biru V2.png" alt="Logo" class="w-7 h-7 sm:w-8 sm:h-8 object-contain">
+        <h1 class="text-base sm:text-lg font-bold tracking-tight text-zinc-900">Kantin Biru</h1>
       </a>
-      <div class="flex items-center gap-4">
-        <!-- Desktop Nav -->
-        <nav class="hidden md:flex items-center gap-6 mr-2">
-          <a href="index.html" class="text-amber-600 font-medium text-sm">Menu</a>
-          <a href="pesanan.html" class="text-zinc-500 hover:text-zinc-900 font-medium text-sm transition-colors duration-150 flex items-center gap-1.5">
-            Pesanan
-            <span class="desktop-cart-badge hidden px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-600 text-white tabular-nums">0</span>
+      <div class="flex items-center gap-3 sm:gap-6">
+        <nav class="flex items-center gap-3 sm:gap-6">
+          <a href="index.html" class="text-amber-600 font-semibold text-xs sm:text-sm active:scale-95 transition-transform duration-150">Menu</a>
+          <a href="pesanan.html" class="text-zinc-600 hover:text-zinc-900 font-medium text-xs sm:text-sm transition-colors duration-150 flex items-center gap-1.5 active:scale-95">
+            <span>Pesanan</span>
+            <span class="desktop-cart-badge hidden w-5 h-5 rounded-full bg-amber-600 text-white text-[11px] font-bold items-center justify-center tabular-nums shadow-sm animate-pop">0</span>
           </a>
-          <a href="tentang.html" class="text-zinc-500 hover:text-zinc-900 font-medium text-sm transition-colors duration-150">Tentang</a>
+          <a href="tentang.html" class="text-zinc-600 hover:text-zinc-900 font-medium text-xs sm:text-sm transition-colors duration-150 active:scale-95">Tentang</a>
         </nav>
         <button id="search-toggle-btn" class="text-zinc-600 hover:text-zinc-900 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/40 rounded-md p-1 transition-all duration-150" aria-label="Toggle Search">
           <i data-lucide="search" class="w-5 h-5"></i>
@@ -67,12 +66,14 @@
     </div>
     
     <!-- Status Bar -->
-    <div class="bg-zinc-100 border-t border-zinc-200 px-4 py-1.5 text-xs text-zinc-600 flex items-center gap-4 max-w-5xl mx-auto w-full">
-      <div class="flex items-center gap-1.5 text-amber-600 font-medium">
-        <span class="text-[10px] animate-pulse">●</span> Buka
+    <div class="bg-zinc-100 border-t border-zinc-200">
+      <div class="max-w-5xl mx-auto px-4 py-1.5 text-xs sm:text-sm text-zinc-600 flex items-center gap-3 w-full">
+        <div class="flex items-center gap-1.5 text-amber-600 font-semibold">
+          <span class="text-xs">●</span> Buka
+        </div>
+        <span class="text-zinc-300 select-none">|</span>
+        <div class="text-zinc-600 font-normal">08:00 – 16:00 WIB</div>
       </div>
-      <span class="text-zinc-400">|</span>
-      <div>08:00 - 16:00 WIB</div>
     </div>
 
     <!-- Search Bar (Hidden by default) -->
