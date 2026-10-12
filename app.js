@@ -271,10 +271,88 @@ function escapeAttr(s) {
   return s.replace(/'/g, "\\'").replace(/"/g, "&quot;");
 }
 
+// ─── Stock Status Helper ───
+function getMenuStockStatus(menu) {
+  let isAvailable = false;
+  let stockCount = null;
+  let isLow = false;
+  let badgeHTML = "";
+
+  if (typeof menu.stock === "object" && menu.stock !== null) {
+    const total = Object.values(menu.stock).reduce((s, v) => s + (parseInt(v) || 0), 0);
+    stockCount = total;
+    isAvailable = total > 0;
+    isLow = total > 0 && total <= 5;
+  } else if (typeof menu.stock === "number") {
+    stockCount = menu.stock;
+    isAvailable = menu.stock > 0;
+    isLow = menu.stock > 0 && menu.stock <= 5;
+  } else if (menu.stock === true) {
+    isAvailable = true;
+    stockCount = null;
+    isLow = false;
+  } else {
+    isAvailable = false;
+    stockCount = 0;
+    isLow = false;
+  }
+
+  if (!isAvailable) {
+    badgeHTML = `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200/60 px-1.5 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Habis</span>`;
+  } else if (isLow) {
+    badgeHTML = `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Sisa ${stockCount}!</span>`;
+  } else if (stockCount !== null) {
+    badgeHTML = `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Stok: ${stockCount}</span>`;
+  } else {
+    badgeHTML = `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Tersedia</span>`;
+  }
+
+  return { isAvailable, stockCount, isLow, badgeHTML };
+}
+
 // ─── Global App Object ───
 window.kantinApp = {
   allMenus: {},
   currentVariantItem: null,
+
+  // ── Stock Check Helper ──
+  checkItemAvailableStock(id, name) {
+    if (!this.allMenus || Object.keys(this.allMenus).length === 0) {
+      return { isStockTracked: false, available: Infinity };
+    }
+    let baseId = null;
+    const keys = Object.keys(this.allMenus).sort((a, b) => b.length - a.length);
+    for (const key of keys) {
+      if (id === key || id.startsWith(key + "-")) { baseId = key; break; }
+    }
+    if (!baseId || !this.allMenus[baseId]) {
+      return { isStockTracked: false, available: Infinity };
+    }
+
+    const menu = this.allMenus[baseId];
+    if (typeof menu.stock === "number") {
+      return { isStockTracked: true, available: menu.stock, baseId };
+    }
+    if (typeof menu.stock === "object" && menu.stock !== null) {
+      const nl = (name || "").toLowerCase();
+      for (const [vl, vs] of Object.entries(menu.stock)) {
+        if (nl.includes(vl.toLowerCase())) {
+          return {
+            isStockTracked: true,
+            available: Math.max(0, parseInt(vs) || 0),
+            variantLabel: vl,
+            baseId
+          };
+        }
+      }
+      const total = Object.values(menu.stock).reduce((s, v) => s + (parseInt(v) || 0), 0);
+      return { isStockTracked: true, available: Math.max(0, total), baseId };
+    }
+    if (menu.stock === false) {
+      return { isStockTracked: true, available: 0, baseId };
+    }
+    return { isStockTracked: false, available: Infinity, baseId };
+  },
 
   // ── Cart ──
   getCart() {
@@ -381,29 +459,15 @@ window.kantinApp = {
     let newQty = curQty + qtyChange;
 
     // Stock validation on increase
-    if (qtyChange > 0 && this.allMenus) {
-      let maxStock = Infinity;
-      let baseId = null;
-      const keys = Object.keys(this.allMenus).sort((a, b) => b.length - a.length);
-      for (const key of keys) {
-        if (id === key || id.startsWith(key + "-")) { baseId = key; break; }
-      }
-      if (baseId) {
-        const menuData = this.allMenus[baseId];
-        if (typeof menuData.stock === "number") {
-          maxStock = menuData.stock;
-        } else if (typeof menuData.stock === "object" && menuData.stock) {
-          const nl = name.toLowerCase();
-          for (const [vl, vs] of Object.entries(menuData.stock)) {
-            if (nl.includes(vl.toLowerCase())) { maxStock = Math.min(maxStock, parseInt(vs) || 0); break; }
+    if (qtyChange > 0) {
+      const stockInfo = this.checkItemAvailableStock(id, name);
+      if (stockInfo.isStockTracked) {
+        if (curQty + qtyChange > stockInfo.available) {
+          if (stockInfo.available <= 0) {
+            alert(`Maaf, stok "${name}" sudah habis.`);
+          } else {
+            alert(`Maaf, stok "${name}" hanya tersisa ${stockInfo.available}.`);
           }
-        }
-        let totalInCart = 0;
-        cart.forEach((item) => {
-          if (item.id === baseId || item.id.startsWith(baseId + "-")) totalInCart += item.qty;
-        });
-        if (totalInCart + qtyChange > maxStock) {
-          alert(`Maaf, sisa stok hanya ${maxStock} untuk pesanan ini.`);
           return;
         }
       }
@@ -427,7 +491,7 @@ window.kantinApp = {
   renderItemControl(container, id, name, price) {
     const stockOk = container?.getAttribute("data-stock") !== "false";
     if (!stockOk) {
-      container.innerHTML = `<button class="w-full bg-zinc-100 text-zinc-400 py-1.5 rounded-md text-xs font-medium cursor-not-allowed" disabled>HABIS</button>`;
+      container.innerHTML = `<button class="w-full bg-zinc-100 text-zinc-400 py-1.5 rounded-md text-xs font-medium cursor-not-allowed border border-zinc-200" disabled>HABIS</button>`;
       return;
     }
     const hasV = container?.getAttribute("data-has-variants") === "true";
@@ -438,13 +502,15 @@ window.kantinApp = {
     const cart = this.getCart();
     const item = cart.find((i) => i.id === id);
     if (item && item.qty > 0) {
+      const stockInfo = this.checkItemAvailableStock(id, name);
+      const isMaxReached = stockInfo.isStockTracked && item.qty >= stockInfo.available;
       container.innerHTML = `
         <div class="flex items-center justify-between">
           <button class="w-7 h-7 rounded-md border border-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-zinc-50 active:scale-90 transition-all duration-150 ease-out" onclick="window.kantinApp.updateQty('${id}', '${escapeAttr(name)}', ${price}, -1, event)" aria-label="Kurangi">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
           </button>
           <span class="text-sm font-semibold tabular-nums animate-pop px-1 inline-block">${item.qty}</span>
-          <button class="w-7 h-7 rounded-md bg-amber-600 text-white flex items-center justify-center hover:bg-amber-700 active:scale-90 transition-all duration-150 ease-out shadow-sm" onclick="window.kantinApp.updateQty('${id}', '${escapeAttr(name)}', ${price}, 1, event)" aria-label="Tambah">
+          <button class="w-7 h-7 rounded-md bg-amber-600 text-white flex items-center justify-center hover:bg-amber-700 active:scale-90 transition-all duration-150 ease-out shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" ${isMaxReached ? "disabled" : ""} onclick="window.kantinApp.updateQty('${id}', '${escapeAttr(name)}', ${price}, 1, event)" aria-label="Tambah">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           </button>
         </div>`;
@@ -514,6 +580,11 @@ window.kantinApp = {
     container.innerHTML = "";
 
     const variants = MENU_VARIANTS[variantKey] || [];
+    const menuObj = this.allMenus?.[idToUse];
+
+    let hasAnyAvailableRadio = false;
+    let totalRadiosInForm = 0;
+
     variants.forEach((variant) => {
       const groupDiv = document.createElement("div");
       groupDiv.className = "mb-4";
@@ -522,22 +593,32 @@ window.kantinApp = {
       title.textContent = variant.name;
       groupDiv.appendChild(title);
 
-      const isStockVariant = STOCK_VARIANT_KEYS.includes(idToUse) &&
+      const isStockVariant = (STOCK_VARIANT_KEYS.includes(idToUse) || (menuObj && typeof menuObj.stock === "object" && menuObj.stock !== null)) &&
         variant.type === "radio" &&
         !["Tingkat Pedas", "Gula", "Tambahan"].includes(variant.name);
 
+      let selectedForThisGroup = false;
+
       variant.options.forEach((opt) => {
         let variantStock = null;
-        const menuObj = this.allMenus?.[idToUse];
         if (menuObj && isStockVariant) {
           if (typeof menuObj.stock === "object" && menuObj.stock) {
-            variantStock = parseInt(menuObj.stock[opt.label]);
-          } else {
-            variantStock = menuObj.stock === true ? 10 : (parseInt(menuObj.stock) || 0);
+            const matchKey = Object.keys(menuObj.stock).find(k => k.toLowerCase() === opt.label.toLowerCase());
+            variantStock = matchKey ? parseInt(menuObj.stock[matchKey]) : 0;
+          } else if (typeof menuObj.stock === "number") {
+            variantStock = menuObj.stock;
+          } else if (menuObj.stock === true) {
+            variantStock = null;
           }
         }
-        if (isNaN(variantStock)) variantStock = 0;
-        const outOfStock = isStockVariant && variantStock === 0;
+        if (variantStock !== null && isNaN(variantStock)) variantStock = 0;
+        const outOfStock = isStockVariant && variantStock !== null && variantStock <= 0;
+        const isLowVariant = isStockVariant && variantStock !== null && variantStock > 0 && variantStock <= 5;
+
+        if (variant.type === "radio") {
+          totalRadiosInForm++;
+          if (!outOfStock) hasAnyAvailableRadio = true;
+        }
 
         const label = document.createElement("label");
         label.className = `flex items-center justify-between p-3 border rounded-lg mb-2 transition-colors duration-150 ${outOfStock ? "opacity-50 cursor-not-allowed bg-zinc-50 border-zinc-100" : "cursor-pointer hover:bg-zinc-50 border-zinc-200"}`;
@@ -551,7 +632,14 @@ window.kantinApp = {
         input.dataset.price = opt.price;
         input.className = "w-4 h-4 text-amber-600 border-zinc-300 focus:ring-amber-600";
         if (outOfStock) input.disabled = true;
-        if (!outOfStock && variant.type === "radio" && opt.label === variant.default) input.checked = true;
+
+        if (!outOfStock && variant.type === "radio") {
+          if (!selectedForThisGroup && (opt.label === variant.default || !selectedForThisGroup)) {
+            input.checked = true;
+            selectedForThisGroup = true;
+          }
+        }
+
         input.addEventListener("change", () => this.updateVariantTotal());
 
         const labelText = document.createElement("span");
@@ -564,8 +652,20 @@ window.kantinApp = {
         right.className = "flex items-center gap-2";
         if (isStockVariant) {
           const stockSpan = document.createElement("span");
-          stockSpan.className = outOfStock ? "text-xs font-medium text-red-500" : "text-xs text-zinc-400";
-          stockSpan.textContent = outOfStock ? "Habis" : `Stok: ${variantStock}`;
+          stockSpan.className = "variant-stock-badge";
+          if (outOfStock) {
+            stockSpan.className += " text-xs font-semibold text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded";
+            stockSpan.textContent = "Habis";
+          } else if (isLowVariant) {
+            stockSpan.className += " text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded";
+            stockSpan.textContent = `Sisa ${variantStock}!`;
+          } else if (variantStock !== null) {
+            stockSpan.className += " text-xs text-zinc-500 font-medium";
+            stockSpan.textContent = `Stok: ${variantStock}`;
+          } else {
+            stockSpan.className += " text-xs text-zinc-500 font-medium";
+            stockSpan.textContent = "Tersedia";
+          }
           right.appendChild(stockSpan);
         }
         if (opt.price > 0) {
@@ -580,8 +680,24 @@ window.kantinApp = {
       container.appendChild(groupDiv);
     });
 
-    this.updateVariantTotal();
+    // Check modal submit button
     const modal = el("variantModal");
+    const submitBtn = modal.querySelector("button[onclick*='addToCartWithVariants']");
+    if (submitBtn) {
+      if (totalRadiosInForm > 0 && !hasAnyAvailableRadio) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add("opacity-50", "cursor-not-allowed", "bg-zinc-400");
+        submitBtn.classList.remove("bg-amber-600", "hover:bg-amber-700");
+        submitBtn.textContent = "Semua Pilihan Habis";
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("opacity-50", "cursor-not-allowed", "bg-zinc-400");
+        submitBtn.classList.add("bg-amber-600", "hover:bg-amber-700");
+        submitBtn.textContent = "Tambah ke Keranjang";
+      }
+    }
+
+    this.updateVariantTotal();
     const content = el("variantContent");
     const overlay = modal.querySelector(".bg-zinc-900\\/40, [onclick*='closeVariantModal']");
     modal.classList.remove("hidden");
@@ -595,6 +711,66 @@ window.kantinApp = {
       content.classList.add("translate-y-0", "scale-100", "opacity-100");
     });
     document.body.style.overflow = "hidden";
+  },
+
+  refreshVariantModalStock() {
+    if (!this.currentVariantItem) return;
+    const { id } = this.currentVariantItem;
+    const menuObj = this.allMenus?.[id];
+    if (!menuObj) return;
+
+    const container = document.getElementById("variant-options-container");
+    if (!container) return;
+
+    const labels = container.querySelectorAll("label");
+    labels.forEach((lbl) => {
+      const input = lbl.querySelector("input[type='radio']");
+      if (!input) return;
+      const optVal = input.value;
+      
+      let variantStock = null;
+      if (typeof menuObj.stock === "object" && menuObj.stock) {
+        const matchKey = Object.keys(menuObj.stock).find(k => k.toLowerCase() === optVal.toLowerCase());
+        variantStock = matchKey ? parseInt(menuObj.stock[matchKey]) : 0;
+      } else if (typeof menuObj.stock === "number") {
+        variantStock = menuObj.stock;
+      }
+      
+      if (variantStock !== null) {
+        const outOfStock = variantStock <= 0;
+        const isLow = variantStock > 0 && variantStock <= 5;
+        input.disabled = outOfStock;
+        
+        if (outOfStock) {
+          lbl.classList.add("opacity-50", "cursor-not-allowed", "bg-zinc-50", "border-zinc-100");
+          lbl.classList.remove("cursor-pointer", "hover:bg-zinc-50", "border-zinc-200");
+          if (input.checked) {
+            input.checked = false;
+            const firstAvailable = container.querySelector("input[type='radio']:not(:disabled)");
+            if (firstAvailable) firstAvailable.checked = true;
+          }
+        } else {
+          lbl.classList.remove("opacity-50", "cursor-not-allowed", "bg-zinc-50", "border-zinc-100");
+          lbl.classList.add("cursor-pointer", "hover:bg-zinc-50", "border-zinc-200");
+        }
+
+        const stockSpan = lbl.querySelector(".variant-stock-badge");
+        if (stockSpan) {
+          if (outOfStock) {
+            stockSpan.className = "variant-stock-badge text-xs font-semibold text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded";
+            stockSpan.textContent = "Habis";
+          } else if (isLow) {
+            stockSpan.className = "variant-stock-badge text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded";
+            stockSpan.textContent = `Sisa ${variantStock}!`;
+          } else {
+            stockSpan.className = "variant-stock-badge text-xs text-zinc-500 font-medium";
+            stockSpan.textContent = `Stok: ${variantStock}`;
+          }
+        }
+      }
+    });
+
+    this.updateVariantTotal();
   },
 
   closeVariantModal() {
@@ -631,11 +807,18 @@ window.kantinApp = {
     let variantNames = [];
     inputs.forEach((inp) => {
       const v = inp.value;
-      if (v && v !== "Tidak Pedas" && v !== "Normal" && v !== "Goreng Original" && v !== "Dingin (Es)") {
-        variantNames.push(inp.type === "checkbox" ? `+${v}` : v);
+      if (v) {
+        if (inp.type === "checkbox") {
+          variantNames.push(`+${v}`);
+        } else {
+          // Keep flavor names, only exclude generic non-flavor radio defaults
+          if (v !== "Tidak Pedas" && v !== "Normal") {
+            variantNames.push(v);
+          }
+        }
       }
     });
-    const suffix = variantNames.length ? `-${variantNames.join("-").replace(/\s+/g, "-").toLowerCase()}` : "";
+    const suffix = variantNames.length ? `-${variantNames.join("-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}` : "";
     const uniqueId = `${this.currentVariantItem.id}${suffix}`;
     const displayText = variantNames.length ? ` (${variantNames.join(", ")})` : "";
     const finalName = `${this.currentVariantItem.name}${displayText}`;
@@ -654,29 +837,32 @@ window.kantinApp = {
       else if (MENU_VARIANTS[id]) menu.hasVariants = true;
 
       let categoryBadge = "";
-      if (menu.category === "minuman-dingin") categoryBadge = `<span class="absolute top-2 right-2 bg-blue-50 text-blue-600 text-[10px] font-medium px-1.5 py-0.5 rounded z-10">Dingin</span>`;
-      else if (menu.category === "minuman-panas") categoryBadge = `<span class="absolute top-2 right-2 bg-orange-50 text-orange-600 text-[10px] font-medium px-1.5 py-0.5 rounded z-10">Panas</span>`;
+      if (menu.category === "minuman-dingin") categoryBadge = `<span class="absolute top-2 right-2 bg-blue-50 text-blue-600 text-[10px] font-medium px-1.5 py-0.5 rounded z-10 border border-blue-100">Dingin</span>`;
+      else if (menu.category === "minuman-panas") categoryBadge = `<span class="absolute top-2 right-2 bg-orange-50 text-orange-600 text-[10px] font-medium px-1.5 py-0.5 rounded z-10 border border-orange-100">Panas</span>`;
 
-      let isAvailable = false;
-      if (typeof menu.stock === "object" && menu.stock) {
-        isAvailable = Object.values(menu.stock).reduce((s, v) => s + (parseInt(v) || 0), 0) > 0;
-      } else if (menu.stock === true || (typeof menu.stock === "number" && menu.stock > 0)) {
-        isAvailable = true;
-      }
+      const stockStatus = getMenuStockStatus(menu);
 
       html += `
         <article class="rounded-lg border border-zinc-200 bg-white overflow-hidden flex flex-col relative group transition-all duration-200 ease-out hover:-translate-y-1 hover:border-zinc-300 hover:shadow-sm" id="card-${id}" data-category="${menu.category}" data-is-rekomendasi="${menu.rekomendasi}">
-          ${menu.rekomendasi ? `<span class="absolute top-2 left-2 bg-amber-50 text-amber-700 text-[10px] font-medium px-1.5 py-0.5 rounded z-10 shadow-sm">Rekomendasi</span>` : ""}
+          ${menu.rekomendasi ? `<span class="absolute top-2 left-2 bg-amber-50 text-amber-700 text-[10px] font-medium px-1.5 py-0.5 rounded z-10 shadow-sm border border-amber-200/40">Rekomendasi</span>` : ""}
           ${categoryBadge}
           <div class="aspect-[4/3] bg-zinc-100 overflow-hidden relative">
-            <img src="${menu.image || "https://placehold.co/400x300/f4f4f5/a1a1aa?text=No+Image"}" alt="${menu.name}" class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105" loading="lazy" width="400" height="300">
+            <img src="${menu.image || "https://placehold.co/400x300/f4f4f5/a1a1aa?text=No+Image"}" alt="${menu.name}" class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105 ${!stockStatus.isAvailable ? 'grayscale opacity-60' : ''}" loading="lazy" width="400" height="300">
+            ${!stockStatus.isAvailable ? `
+              <div class="absolute inset-0 bg-zinc-900/30 flex items-center justify-center z-10">
+                <span class="bg-zinc-900/90 text-white text-[11px] font-bold px-2 py-0.5 rounded tracking-wide shadow-sm border border-zinc-700">HABIS</span>
+              </div>
+            ` : ""}
           </div>
           <div class="p-3 flex flex-col flex-1 justify-between">
             <div>
               <h3 class="font-medium text-sm text-zinc-900 line-clamp-1 mb-1 transition-colors duration-150 group-hover:text-amber-700">${menu.name}</h3>
-              <p class="text-amber-600 font-semibold text-sm">${formatRupiah(menu.price)}</p>
+              <div class="flex items-center justify-between gap-1">
+                <p class="text-amber-600 font-semibold text-sm">${formatRupiah(menu.price)}</p>
+                ${stockStatus.badgeHTML}
+              </div>
             </div>
-            <div class="item-action-container w-full mt-3" data-id="${id}" data-name="${escapeAttr(menu.name)}" data-price="${menu.price}" data-stock="${isAvailable}" ${menu.hasVariants ? 'data-has-variants="true"' : ""}></div>
+            <div class="item-action-container w-full mt-3" data-id="${id}" data-name="${escapeAttr(menu.name)}" data-price="${menu.price}" data-stock="${stockStatus.isAvailable}" ${menu.hasVariants ? 'data-has-variants="true"' : ""}></div>
           </div>
         </article>`;
     }
@@ -692,27 +878,60 @@ window.kantinApp = {
     this.syncAllItemControls();
   },
 
-  async fetchAndRenderMenus() {
-    const container = document.getElementById("menu-container");
-    if (!container) return;
+  // ── Real-Time Menu Listener ──
+  initMenuListener() {
+    // 1. Initial render from IndexedDB cache if available
+    getCachedMenus().then((cached) => {
+      if (cached && Object.keys(this.allMenus).length === 0) {
+        this.allMenus = cached;
+        const container = document.getElementById("menu-container");
+        if (container) {
+          this._applyMenuToDOM(container, this._buildMenuCardHTML(cached));
+        }
+        if (document.getElementById("cart-items-container")) {
+          this.renderCartPage();
+        }
+      }
+    });
 
-    const cached = await getCachedMenus();
-    if (cached) {
-      this.allMenus = cached;
-      this._applyMenuToDOM(container, this._buildMenuCardHTML(cached));
-    }
-
-    try {
-      const snapshot = await get(ref(db, "menus"));
-      if (!snapshot.exists()) { if (!cached) this.syncAllItemControls(); return; }
+    // 2. Real-time Firebase RTDB listener
+    onValue(ref(db, "menus"), (snapshot) => {
+      if (!snapshot.exists()) return;
       const fresh = snapshot.val();
-      setCachedMenus(fresh);
       this.allMenus = fresh;
-      this._applyMenuToDOM(container, this._buildMenuCardHTML(fresh));
-    } catch (e) {
-      console.error("Menu fetch error:", e);
-      if (!cached) container.innerHTML = `<div class="col-span-full py-16 text-center text-zinc-400 text-sm">Gagal memuat menu. Periksa koneksi internet.</div>`;
-    }
+      setCachedMenus(fresh);
+
+      const container = document.getElementById("menu-container");
+      if (container) {
+        const activeCatPill = document.querySelector("[data-cat-pill].bg-amber-600");
+        const activeCat = activeCatPill ? activeCatPill.dataset.catPill : "all";
+        const searchInput = document.getElementById("search-input");
+        const searchQuery = searchInput ? searchInput.value : "";
+
+        this._applyMenuToDOM(container, this._buildMenuCardHTML(fresh));
+
+        if (typeof window.applyCategoryFilter === "function") {
+          window.applyCategoryFilter(activeCat);
+        }
+        if (searchQuery && typeof window.handleMenuSearch === "function") {
+          window.handleMenuSearch(searchQuery);
+        }
+      }
+
+      if (document.getElementById("cart-items-container")) {
+        this.renderCartPage();
+      }
+
+      if (this.currentVariantItem && !document.getElementById("variantModal")?.classList.contains("hidden")) {
+        this.refreshVariantModalStock();
+      }
+    }, (error) => {
+      console.error("Firebase menu listener error:", error);
+    });
+  },
+
+  fetchAndRenderMenus() {
+    this.initMenuListener();
   },
 
   // ── Cart Page Render (pesanan.html) ──
@@ -738,39 +957,75 @@ window.kantinApp = {
     if (summaryCard) summaryCard.style.display = "block";
     if (cartView) cartView.style.display = "block";
 
-    container.innerHTML = cart.map((item) => `
-      <div id="cart-row-${item.id}" class="flex gap-3 items-center py-3 border-b border-zinc-100 last:border-0 transition-all duration-200">
-        <div class="w-12 h-12 rounded-md bg-zinc-100 overflow-hidden shrink-0">
-          ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy">` : `<div class="w-full h-full flex items-center justify-center text-zinc-300"><i data-lucide="utensils" class="w-5 h-5"></i></div>`}
-        </div>
-        <div class="flex-1 min-w-0">
-          <h4 class="font-medium text-sm text-zinc-900 truncate">${item.name}</h4>
-          <p class="text-amber-600 font-semibold text-xs mt-0.5">${formatRupiah(item.price)}</p>
-          <div class="flex items-center gap-2 mt-1.5">
-            <button class="w-6 h-6 rounded border border-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-zinc-50 active:scale-90 transition-all duration-150" onclick="window.kantinApp.updateQty('${item.id}', '${escapeAttr(item.name)}', ${item.price}, -1)">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
-            </button>
-            <span class="text-xs font-semibold tabular-nums w-4 text-center animate-pop">${item.qty}</span>
-            <button class="w-6 h-6 rounded bg-amber-600 text-white flex items-center justify-center hover:bg-amber-700 active:scale-90 transition-all duration-150 shadow-sm" onclick="window.kantinApp.updateQty('${item.id}', '${escapeAttr(item.name)}', ${item.price}, 1)">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            </button>
+    let hasStockIssue = false;
+
+    container.innerHTML = cart.map((item) => {
+      const stockInfo = this.checkItemAvailableStock(item.id, item.name);
+      let stockWarningHTML = "";
+      
+      if (stockInfo.isStockTracked) {
+        if (stockInfo.available <= 0) {
+          hasStockIssue = true;
+          stockWarningHTML = `<div class="mt-1 flex items-center gap-1.5 text-xs text-red-600 font-semibold bg-red-50 border border-red-100 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Stok Habis! Hapus item ini untuk melanjutkan.</div>`;
+        } else if (item.qty > stockInfo.available) {
+          hasStockIssue = true;
+          stockWarningHTML = `<div class="mt-1 flex items-center gap-1.5 text-xs text-amber-700 font-semibold bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Sisa stok hanya ${stockInfo.available}! Kurangi jumlah pesanan.</div>`;
+        } else if (stockInfo.available <= 5) {
+          stockWarningHTML = `<div class="mt-1 flex items-center gap-1 text-[11px] text-amber-600 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Sisa stok: ${stockInfo.available}</div>`;
+        }
+      }
+
+      return `
+        <div id="cart-row-${item.id}" class="py-3 border-b border-zinc-100 last:border-0 transition-all duration-200">
+          <div class="flex gap-3 items-center">
+            <div class="w-12 h-12 rounded-md bg-zinc-100 overflow-hidden shrink-0 relative">
+              ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover ${stockInfo.isStockTracked && stockInfo.available <= 0 ? 'grayscale opacity-60' : ''}" loading="lazy">` : `<div class="w-full h-full flex items-center justify-center text-zinc-300"><i data-lucide="utensils" class="w-5 h-5"></i></div>`}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-sm text-zinc-900 truncate">${item.name}</h4>
+              <p class="text-amber-600 font-semibold text-xs mt-0.5">${formatRupiah(item.price)}</p>
+              <div class="flex items-center gap-2 mt-1.5">
+                <button class="w-6 h-6 rounded border border-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-zinc-50 active:scale-90 transition-all duration-150" onclick="window.kantinApp.updateQty('${item.id}', '${escapeAttr(item.name)}', ${item.price}, -1)">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+                </button>
+                <span class="text-xs font-semibold tabular-nums w-4 text-center animate-pop">${item.qty}</span>
+                <button class="w-6 h-6 rounded bg-amber-600 text-white flex items-center justify-center hover:bg-amber-700 active:scale-90 transition-all duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" ${stockInfo.isStockTracked && item.qty >= stockInfo.available ? "disabled" : ""} onclick="window.kantinApp.updateQty('${item.id}', '${escapeAttr(item.name)}', ${item.price}, 1)">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="text-right flex flex-col items-end gap-2">
+              <p class="font-semibold text-sm text-zinc-900">${formatRupiah(item.price * item.qty)}</p>
+              <button onclick="window.kantinApp.deleteCartItem('${item.id}')" class="w-7 h-7 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 active:scale-75 flex items-center justify-center transition-all duration-150" aria-label="Hapus item">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
           </div>
+          ${stockWarningHTML}
         </div>
-        <div class="text-right flex flex-col items-end gap-2">
-          <p class="font-semibold text-sm text-zinc-900">${formatRupiah(item.price * item.qty)}</p>
-          <button onclick="window.kantinApp.deleteCartItem('${item.id}')" class="w-7 h-7 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 active:scale-75 flex items-center justify-center transition-all duration-150" aria-label="Hapus item">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>
-        </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     const totalEl = document.getElementById("total-val");
     if (totalEl) totalEl.textContent = formatRupiah(totalPrice);
     const summaryTotalEl = document.getElementById("total-val-summary");
     if (summaryTotalEl) summaryTotalEl.textContent = formatRupiah(totalPrice);
 
-    // Re-init lucide icons for dynamically rendered content
+    const btnCheckout = document.getElementById("btn-checkout");
+    if (btnCheckout) {
+      if (hasStockIssue) {
+        btnCheckout.disabled = true;
+        btnCheckout.classList.add("opacity-50", "cursor-not-allowed", "bg-zinc-400");
+        btnCheckout.classList.remove("bg-amber-600", "hover:bg-amber-700");
+        btnCheckout.textContent = "Stok Tidak Mencukupi";
+      } else {
+        btnCheckout.disabled = false;
+        btnCheckout.classList.remove("opacity-50", "cursor-not-allowed", "bg-zinc-400");
+        btnCheckout.classList.add("bg-amber-600", "hover:bg-amber-700");
+        btnCheckout.textContent = "Pesan Sekarang";
+      }
+    }
+
     if (typeof lucide !== "undefined") lucide.createIcons();
   },
 
@@ -803,9 +1058,33 @@ window.kantinApp = {
     const notes = document.getElementById("order-notes")?.value || "";
 
     const btn = document.getElementById("btn-checkout");
-    if (btn) { btn.textContent = "Memproses..."; btn.disabled = true; }
+    if (btn) { btn.textContent = "Memeriksa stok..."; btn.disabled = true; }
 
     try {
+      // Live stock verification directly from Firebase RTDB before placing order
+      const menusSnap = await get(ref(db, "menus"));
+      if (menusSnap.exists()) {
+        this.allMenus = menusSnap.val();
+        for (const item of cart) {
+          const stockInfo = this.checkItemAvailableStock(item.id, item.name);
+          if (stockInfo.isStockTracked) {
+            if (stockInfo.available <= 0) {
+              alert(`Maaf, menu "${item.name}" saat ini sudah habis. Silakan sesuaikan pesanan.`);
+              this.renderCartPage();
+              if (btn) { btn.textContent = "Pesan Sekarang"; btn.disabled = false; }
+              return;
+            }
+            if (item.qty > stockInfo.available) {
+              alert(`Maaf, stok "${item.name}" hanya tersisa ${stockInfo.available}. Silakan kurangi jumlah pesanan.`);
+              this.renderCartPage();
+              if (btn) { btn.textContent = "Pesan Sekarang"; btn.disabled = false; }
+              return;
+            }
+          }
+        }
+      }
+
+      if (btn) btn.textContent = "Memproses pesanan...";
       const timestamp = new Date().toISOString();
       const todayStr = timestamp.split("T")[0];
 
@@ -1095,8 +1374,8 @@ function initApp() {
   localStorage.removeItem("kantin_biru_menus_cache");
   initTableDetection();
 
-  const menuContainer = document.getElementById("menu-container");
-  if (menuContainer) window.kantinApp.fetchAndRenderMenus();
+  // Always initialize live menu listener so real-time stock is synchronized across all pages
+  window.kantinApp.initMenuListener();
 
   window.kantinApp.updateCartBadge();
   window.kantinApp.renderCartPage();

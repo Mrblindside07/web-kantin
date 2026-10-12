@@ -552,7 +552,27 @@ window.openEditMenu = function(id) {
   const modal = document.getElementById('edit-menu-modal');
   if (!modal) return;
 
+  const isVariantStock = typeof m.stock === 'object' && m.stock !== null;
   const stockVal = typeof m.stock === 'number' ? m.stock : 10;
+
+  const stockFieldsHtml = isVariantStock ? `
+    <div>
+      <label class="block text-xs font-medium text-zinc-700 mb-1">Stok Varian (Real-Time)</label>
+      <div class="bg-zinc-50 border border-zinc-200 rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+        ${Object.entries(m.stock).map(([flavor, fStock]) => `
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-medium text-zinc-700 truncate">${flavor}</span>
+            <input type="number" data-flavor="${flavor}" class="edit-variant-stock-input w-24 px-2 py-1 border border-zinc-300 rounded text-xs text-right focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600" value="${fStock}">
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : `
+    <div>
+      <label class="block text-xs font-medium text-zinc-700 mb-1">Stok</label>
+      <input type="number" id="edit-stock-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600" value="${stockVal}" required>
+    </div>
+  `;
 
   modal.innerHTML = `
     <div class="relative bg-white rounded-lg border border-zinc-200 w-full max-w-lg p-6 shadow-xl max-h-[90vh] overflow-y-auto transform scale-95 opacity-0 transition-all duration-200">
@@ -582,10 +602,7 @@ window.openEditMenu = function(id) {
             <input type="number" id="edit-price-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600" value="${m.price || 0}" required>
           </div>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-zinc-700 mb-1">Stok</label>
-          <input type="number" id="edit-stock-${id}" class="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600" value="${stockVal}" required>
-        </div>
+        ${stockFieldsHtml}
         <div class="flex items-center gap-2 pt-2">
           <input type="checkbox" id="edit-reko-${id}" class="rounded text-amber-600 focus:ring-amber-600" ${m.rekomendasi ? 'checked' : ''}>
           <label for="edit-reko-${id}" class="text-xs font-medium text-zinc-700">Rekomendasi</label>
@@ -607,11 +624,22 @@ window.openEditMenu = function(id) {
   document.getElementById(`edit-form-${id}`).addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
+      let stockResult;
+      const vInputs = modal.querySelectorAll('.edit-variant-stock-input');
+      if (vInputs.length > 0) {
+        stockResult = {};
+        vInputs.forEach(inp => {
+          stockResult[inp.dataset.flavor] = Math.max(0, parseInt(inp.value) || 0);
+        });
+      } else {
+        stockResult = Math.max(0, parseInt(document.getElementById(`edit-stock-${id}`).value) || 0);
+      }
+
       const updated = {
         name: document.getElementById(`edit-name-${id}`).value.trim(),
         category: document.getElementById(`edit-category-${id}`).value,
         price: parseInt(document.getElementById(`edit-price-${id}`).value) || 0,
-        stock: parseInt(document.getElementById(`edit-stock-${id}`).value) || 0,
+        stock: stockResult,
         rekomendasi: document.getElementById(`edit-reko-${id}`).checked
       };
       await update(ref(db, "menus/" + id), updated);
